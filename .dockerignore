@@ -1,0 +1,32 @@
+# === Git ===
+.git
+.gitignore
+
+# === Python / Environment ===
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.env
+.env.local
+
+# === LangGraph & Local Artifacts ===
+suggested.patch
+*.sqlite
+*.db
+backend/tests/
+docs/
+
+# === IDE & OS ===
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# === Docker ===
+Dockerfile
+docker-compose.yml
+.dockerignore

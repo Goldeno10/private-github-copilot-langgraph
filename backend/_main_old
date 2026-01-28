@@ -1,0 +1,168 @@
+import os
+import uuid
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from typing import List
+
+# LangGraph imports
+from .graph import app as graph_app
+from langchain_core.messages import HumanMessage
+
+app = FastAPI(
+    title="Ollama Cloud Copilot Backend",
+    description="LangGraph Agent powered by Ollama Cloud 120B",
+    version="1.1.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/")
+async def root():
+    # Dynamic check for the cloud model name
+    return {
+        "status": "online", 
+        "provider": "Ollama Cloud",
+        "model": os.getenv("OLLAMA_MODEL", "gpt-oss:120b-cloud")
+    }
+
+
+import json
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    thread_id = str(uuid.uuid4())
+    config = {"configurable": {"thread_id": thread_id}}
+
+    try:
+        while True:
+            # Continue.dev sends a JSON string, not just raw text
+            raw_data = await websocket.receive_text()
+            payload = json.loads(raw_data)
+            user_input = payload.get("prompt", payload.get("message", raw_data))
+
+            async for event in graph_app.astream_events(
+                {"messages": [HumanMessage(content=user_input)]},
+                config=config,
+                version="v2"
+            ):
+                kind = event["event"]
+
+                # Handle LLM streaming tokens
+                if kind == "on_chat_model_stream":
+                    content = event["data"]["chunk"].content
+                    if content:
+                        # Continue expects a specific JSON format to render correctly
+                        await websocket.send_json({
+                            "model": "gpt-oss:120b-cloud",
+                            "message": {"role": "assistant", "content": content},
+                            "done": False
+                        })
+
+                # Handle Tool/Node results
+                elif kind == "on_chain_end" and event["name"] in ["search_code", "generate_patch"]:
+                    output = event["data"].get("output", {})
+                    msgs = output.get("messages", [])
+                    if msgs:
+                        await websocket.send_json({
+                            "message": {"role": "assistant", "content": f"\n\n[Agent]: {msgs[-1].content}\n"},
+                            "done": False
+                        })
+
+            # Signal completion
+            await websocket.send_json({"done": True})
+
+    except Exception as e:
+        await websocket.send_json({"error": str(e), "done": True})
+
+
+
+# @app.websocket("/ws")
+# async def websocket_endpoint(websocket: WebSocket):
+#     await websocket.accept()
+#     # Generate a unique session ID for this VS Code instance
+#     thread_id = str(uuid.uuid4())
+#     config = {"configurable": {"thread_id": thread_id}}
+
+#     try:
+#         while True:
+#             data = await websocket.receive_text()
+#             user_message = HumanMessage(content=data)
+
+#             # Use v2 streaming for high-granularity feedback
+#             async for event in graph_app.astream_events(
+#                 {"messages": [user_message]},
+#                 config=config,
+#                 version="v2"
+#             ):
+#                 kind = event["event"]
+
+#                 # 1. Stream raw LLM tokens (planner or answerer)
+#                 if kind == "on_chat_model_stream":
+#                     content = event["data"]["chunk"].content
+#                     if content:
+#                         await websocket.send_text(content)
+
+#                 # 2. Stream tool activity notifications
+#                 elif kind == "on_chain_start":
+#                     if event["name"] in ["search_code", "generate_patch"]:
+#                         await websocket.send_text(f"\n[Agent: Executing {event['name']}...]\n")
+
+#                 # 3. Stream final tool results (the AI message added by nodes)
+#                 elif kind == "on_chain_end":
+#                     if event["name"] in ["search_code", "generate_patch"]:
+#                         # Extract the AI message from the node output
+#                         output = event["data"].get("output", {})
+#                         messages = output.get("messages", [])
+#                         if messages:
+#                             await websocket.send_text(f"\n{messages[-1].content}\n")
+
+#             await websocket.send_text("\n\n---\nReady.")
+
+#     except WebSocketDisconnect:
+#         pass
+#     except Exception as e:
+#         await websocket.send_text(f"\n\n[Backend Error]: {str(e)}")
+
+@app.get("/chat")
+async def chat_ui():
+    """Simple UI updated for WebSocket streaming."""
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Cloud Copilot</title>
+        <style>body { font-family: monospace; background: #1e1e1e; color: #d4d4d4; padding: 20px; }</style>
+    </head>
+    <body>
+        <h2>Ollama Cloud Agent (120B)</h2>
+        <input id="input" style="width: 80%; padding: 10px;" placeholder="Type a command (e.g., 'Search for auth logic')">
+        <button onclick="send()" style="padding: 10px;">Send</button>
+        <pre id="output" style="white-space: pre-wrap; margin-top: 20px; border-top: 1px solid #333;"></pre>
+        <script>
+            const ws = new WebSocket(`ws://${window.location.host}/ws`);
+            const out = document.getElementById("output");
+            ws.onmessage = (e) => { out.innerText += e.data; window.scrollTo(0, document.body.scrollHeight); };
+            function send() {
+                const msg = document.getElementById("input").value;
+                ws.send(msg);
+                out.innerText += "\\nUSER > " + msg + "\\n";
+                document.getElementById("input").value = "";
+            }
+        </script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(html)
+
+if __name__ == "__main__":
+    import uvicorn
+    # Use the [Uvicorn docs](https://www.uvicorn.org) standard for running
+    uvicorn.run(app, host="0.0.0.0", port=8000)

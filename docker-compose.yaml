@@ -1,0 +1,23 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: agent-bridge
+    ports:
+      - "8000:8000"
+    environment:
+      # Use your system environment variable for the Cloud Key
+      - OLLAMA_API_KEY=${OLLAMA_API_KEY}
+      # Point to the official Ollama Cloud API
+      - OLLAMA_BASE_URL=https://api.ollama.com
+      # Ensure Python doesn't buffer logs (critical for seeing streams in Docker logs)
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    volumes:
+      # Mount the current directory so the Agent can search/patch your real files
+      - .:/app
+    # Ensure git commands don't fail due to "dubious ownership" in the container
+    entrypoint: >
+      sh -c "git config --global --add safe.directory /app && 
+             uvicorn backend.main:app --host 0.0.0.0 --port 8000"

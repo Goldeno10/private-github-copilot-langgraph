@@ -1,0 +1,56 @@
+{
+  "models": [
+    {
+      "title": "Agent 120B (Ollama Cloud)",
+      "provider": "ollama",
+      "model": "gpt-oss:120b-cloud",
+      "apiBase": "http://localhost:8000",
+      "requestOptions": {
+        "timeout": 300000
+      }
+    }
+  ],
+  "tabAutocompleteModel": {
+    "title": "StarCoder2",
+    "provider": "ollama",
+    "model": "starcoder2:15b",
+    "apiBase": "http://localhost:11434"
+  },
+  "contextProviders": [
+    { "name": "code", "options": {} },
+    { "name": "docs", "options": {} },
+    { "name": "diff", "options": {} },
+    { "name": "terminal", "options": {} },
+    { "name": "codebase", "options": {} }
+  ],
+  "slashCommands": [
+    {
+      "name": "ask",
+      "description": "Consult the 120B Senior Engineer",
+      "prompt": "You are a Senior Engineer with full access to this codebase. Use the provided context to answer: "
+    },
+    {
+      "name": "fix",
+      "description": "Generate and apply a git patch",
+      "prompt": "PATCH: Analyze the selected code and the codebase context. Generate a valid git patch to fix the reported issue. Output ONLY the patch."
+    },
+    {
+      "name": "search",
+      "description": "Deep search via LangGraph ripgrep",
+      "prompt": "SEARCH: Find all instances of this logic and explain the flow: "
+    }
+  ],
+  "customCommands": [
+    {
+      "name": "implement",
+      "prompt": "PATCH: Implement the following feature based on the existing architectural patterns in the @codebase:",
+      "description": "AI-driven feature implementation",
+      "writeToSelection": true
+    }
+  ],
+  "embeddingsProvider": {
+    "provider": "ollama",
+    "model": "nomic-embed-text",
+    "apiBase": "http://localhost:11434"
+  }
+}

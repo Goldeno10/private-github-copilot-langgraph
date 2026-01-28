@@ -1,0 +1,46 @@
+name: Ollama Cloud Agent
+version: 1.0.0
+schema: v1
+
+models:
+  - name: Agent 120B (Ollama Cloud)
+    provider: ollama
+    model: gpt-oss:120b-cloud
+    apiBase: http://localhost:8000
+    requestOptions:
+      timeout: 300000
+    roles:
+      - chat
+      - edit
+      - apply
+
+  - name: StarCoder2
+    provider: ollama
+    model: starcoder2:15b
+    apiBase: http://localhost:11434
+    roles:
+      - autocomplete
+
+  - name: Nomic Embed
+    provider: ollama
+    model: nomic-embed-text
+    apiBase: http://localhost:11434
+    roles:
+      - embed
+
+context:
+  - provider: code
+  - provider: codebase
+  - provider: terminal
+  - provider: diff
+
+slashCommands:
+  - name: ask
+    description: Consult the 120B Senior Engineer
+    prompt: "You are a Senior Engineer with full access to this codebase. Use the provided context to answer: "
+  - name: fix
+    description: Generate and apply a git patch
+    prompt: "PATCH: Analyze the selected code and the codebase context. Generate a valid git patch to fix the reported issue. Output ONLY the patch."
+  - name: search
+    description: Deep search via LangGraph ripgrep
+    prompt: "SEARCH: Find all instances of this logic and explain the flow: "
