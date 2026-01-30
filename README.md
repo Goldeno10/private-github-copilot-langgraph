@@ -33,8 +33,8 @@ A stateful, high-intelligence local-to-cloud bridge for VS Code. This project in
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-repo/private-copilot
-cd private-copilot
+git clone https://github.com/Goldeno10/private-github-copilot-langgraph.git
+
 
 # Install dependencies via Pipenv
 pipenv install
@@ -93,4 +93,3 @@ tabAutocompleteModel:
 
 ---
 
-Would you like me to help you refine the `config.yaml` or create a `docker-compose.yml` for this setup?
