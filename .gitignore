@@ -42,7 +42,6 @@ suggested.patch
 temp_code_*
 
 # === IDEs ===
-.vscode/
 .idea/
 *.swp
 *.swo
@@ -50,3 +49,7 @@ temp_code_*
 # === OS Files ===
 .DS_Store
 Thumbs.db
+temp_auto_push.bat
+temp_interactive_push.bat
+.gitignore
+branch_structure.json
