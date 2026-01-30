@@ -5,7 +5,10 @@ A stateful, high-intelligence local-to-cloud bridge for VS Code. This project in
 ---
 
 ## 🏗️ Architecture Data Flow Diagram
-![Architecture Diagram](copilot_agent.png)
+![Architecture Diagram](assets/copilot_agent.png)
+
+### Quick Preview (GIF)
+![Quick Demo](assets/copilot_agent_demo.gif)
 
 
 ## 🌟 Key Features
